@@ -1,3 +1,4 @@
+import { loadAsset } from "./loader.js";
 window.onload = function () {
   let levelWidth = 3000;
   let worldHeight;
@@ -103,130 +104,43 @@ window.onload = function () {
   window.addEventListener("resize", resizeCanvas);
 
   let cameraX = 0;
+  const backgroundFar=loadAsset("sprites/background/darklayer.png");
+  const backgroundMid = loadAsset("sprites/background/opening.png");
+  const foregroundMid = loadAsset("sprites/background/spikesfloor.png");
+  const foregroundNear = loadAsset("sprites/background/pillars.png");
+  const foregroundStationary = loadAsset("sprites/background/frame.png");
+  const coinImg = loadAsset("sprites/colectables/coinAnim.gif");
+  const deathImg1 = loadAsset("sprites/player/death/death1.png");
+  const deathImg2 = loadAsset("sprites/player/death/death2.png");
+  const deathImg3 = loadAsset("sprites/player/death/death3.png");
+  const playerImgRight = loadAsset("sprites/player/player.png");
+  const playerImgLeft = loadAsset("sprites/player/playerLeft.png");
+  const playerImgWalkRight1 = loadAsset("sprites/player/walk/walk1.png");
+  const playerImgWalkRight2 = loadAsset("sprites/player/walk/walk2.png");
+  const playerImgWalkLeft1 = loadAsset("sprites/player/walk/walk1Left.png");
+  const playerImgWalkLeft2 = loadAsset("sprites/player/walk/walk2Left.png");
+  const playerImgJumpRight = loadAsset("sprites/player/jump/jump.png");
+  const playerImgJumpLeft = loadAsset("sprites/player/jump/jumpLeft.png");
+  const playerImgCrouchRight = loadAsset("sprites/player/crouch/crouchRight.png");
+  const playerImgCrouchLeft = loadAsset("sprites/player/crouch/crouchLeft.png");
+  const spikeImgSmall = loadAsset("sprites/spikes/spikes.png");
+  const spikeImgBig = loadAsset("sprites/spikes/spikesLong.png");
+  const platformLeftImg = loadAsset("sprites/platform/platformLeft.png");
+  const platformCenter1Img = loadAsset("sprites/platform/Center1.png");
+  const platformCenter2Img = loadAsset("sprites/platform/Center2.png");
+  const platformRightImg = loadAsset("sprites/platform/platformRight.png");
 
-  const backgroundFar = new Image();
-  backgroundFar.src = "sprites/background/darklayer.png";
-  backgroundFar.onerror = () =>
-    console.error("Failed to load sprites/background/darklayer.png");
-
-  const backgroundMid = new Image();
-  backgroundMid.src = "sprites/background/opening.png";
-  backgroundMid.onerror = () =>
-    console.error("Failed to load sprites/background/opening.png");
-
-  const foregroundMid = new Image();
-  foregroundMid.src = "sprites/background/spikesfloor.png";
-  foregroundMid.onerror = () =>
-    console.error("Failed to load sprites/background/spikesfloor.png");
-
-  const foregroundNear = new Image();
-  foregroundNear.src = "sprites/background/pillars.png";
-  foregroundNear.onerror = () =>
-    console.error("Failed to load sprites/background/pillars.png");
-
-  const foregroundStationary = new Image();
-  foregroundStationary.src = "sprites/background/frame.png";
-  foregroundStationary.onerror = () =>
-    console.error("Failed to load sprites/background/frame.png");
-
-  const coinImg = new Image();
-  coinImg.src = "sprites/colectables/coinAnim.gif";
-  coinImg.onerror = () => console.error("Failed to load sprites/colectables/coin.png");
-
-  const deathImg1 = new Image();
-  deathImg1.src = "sprites/player/death/death1.png";
-  deathImg1.onerror = () => console.error("Failed to load sprites/player/death/death1.png");
-  const deathImg2 = new Image();
-  deathImg2.src = "sprites/player/death/death2.png";
-  deathImg2.onerror = () => console.error("Failed to load sprites/player/death/death2.png");
-  const deathImg3 = new Image();
-  deathImg3.src = "sprites/player/death/death3.png";
-  deathImg3.onerror = () => console.error("Failed to load sprites/player/death/death3.png");
-
-  const playerImgRight = new Image();
-  playerImgRight.src = "sprites/player/player.png";
-  playerImgRight.onerror = () =>
-    console.error("Failed to load sprites/player/player.png");
-  const playerImgLeft = new Image();
-  playerImgLeft.src = "sprites/player/playerLeft.png";
-  playerImgLeft.onerror = () =>
-    console.error("Failed to load sprites/player/playerLeft.png");
-  const playerImgWalkRight1 = new Image();
-  playerImgWalkRight1.src = "sprites/player/walk/walk1.png";
-  playerImgWalkRight1.onerror = () =>
-    console.error("Failed to load sprites/player/walk/walk1.png");
-  const playerImgWalkRight2 = new Image();
-  playerImgWalkRight2.src = "sprites/player/walk/walk2.png";
-  playerImgWalkRight2.onerror = () =>
-    console.error("Failed to load sprites/player/walk/walk2.png");
-  const playerImgWalkLeft1 = new Image();
-  playerImgWalkLeft1.src = "sprites/player/walk/walk1Left.png";
-  playerImgWalkLeft1.onerror = () =>
-    console.error("Failed to load sprites/player/walk/walk1Left.png");
-  const playerImgWalkLeft2 = new Image();
-  playerImgWalkLeft2.src = "sprites/player/walk/walk2Left.png";
-  playerImgWalkLeft2.onerror = () =>
-    console.error("Failed to load sprites/player/walk/walk2Left.png");
-  const playerImgJumpRight = new Image();
-  playerImgJumpRight.src = "sprites/player/jump/jump.png";
-  playerImgJumpRight.onerror = () =>
-    console.error("Failed to load sprites/player/jump/jump.png");
-  const playerImgJumpLeft = new Image();
-  playerImgJumpLeft.src = "sprites/player/jump/jumpLeft.png";
-  playerImgJumpLeft.onerror = () =>
-    console.error("Failed to load sprites/player/jump/jumpLeft.png");
-  const playerImgCrouchRight = new Image();
-  playerImgCrouchRight.src = "sprites/player/crouch/crouchRight.png";
-  playerImgCrouchRight.onerror = () =>
-    console.error("Failed to load sprites/player/crouch/crouchRight.png");
-  const playerImgCrouchLeft = new Image();
-  playerImgCrouchLeft.src = "sprites/player/crouch/crouchLeft.png";
-  playerImgCrouchLeft.onerror = () =>
-    console.error("Failed to load sprites/player/crouch/crouchLeft.png");
-
-  const spikeImgSmall = new Image();
-  spikeImgSmall.src = "sprites/spikes/spikes.png";
-  spikeImgSmall.onload = () => console.log("Successfully loaded sprites/spikes/spikes.png");
-  spikeImgSmall.onerror = () =>
-    console.error("Failed to load sprites/spikes/spikes.png");
-  const spikeImgBig = new Image();
-  spikeImgBig.src = "sprites/spikes/spikesLong.png";
-  spikeImgBig.onerror = () =>
-    console.error("Failed to load sprites/spikes/spikesLong.png");
-
-  const platformLeftImg = new Image();
-  platformLeftImg.src = "sprites/platform/platformLeft.png";
-  platformLeftImg.onerror = () =>
-    console.error("Failed to load sprites/platform/platformLeft.png");
-  const platformCenter1Img = new Image();
-  platformCenter1Img.src = "sprites/platform/Center1.png";
-  platformCenter1Img.onerror = () =>
-    console.error("Failed to load sprites/platform/Center1.png");
-  const platformCenter2Img = new Image();
-  platformCenter2Img.src = "sprites/platform/Center2.png";
-  platformCenter2Img.onerror = () =>
-    console.error("Failed to load sprites/platform/Center2.png");
-  const platformRightImg = new Image();
-  platformRightImg.src = "sprites/platform/platformRight.png";
-  platformRightImg.onerror = () =>
-    console.error("Failed to load sprites/platform/platformRight.png");
-
-  const soundWalk = new Audio("sounds/playerwalk.wav");
+  const soundWalk = loadAsset("sounds/playerwalk.wav");
   soundWalk.volume = 0.2;
   soundWalk.playbackRate = 3;
-  const soundJump = new Audio();
-  soundJump.src = "sounds/jump.wav";
+  const soundJump = loadAsset("sounds/jump.wav");
   soundJump.volume = 0.2;
-  const soundCrouch = new Audio("sounds/crouch.wav");
+  const soundCrouch = loadAsset("sounds/crouch.wav");
   soundCrouch.volume = 1;
   soundCrouch.playbackRate = 0.8;
-  const soundBackground = new Audio("sounds/background.wav");
+  const soundBackground = loadAsset("sounds/background.wav");
   soundBackground.loop = true;
   soundBackground.volume = 0.5;
-  soundBackground
-    .play()
-    .catch((e) => console.error("Failed to play background sound:", e));
-
   let platforms = [];
   let spikes = [];
   let coins = [];
@@ -1012,8 +926,7 @@ window.onload = function () {
     updatePlayer();
     updateGhost();
   }
-
-  function loop() {
+    function loop() {
     try {
       update();
       draw();
@@ -1024,4 +937,6 @@ window.onload = function () {
   }
   console.log("Starting game loop");
   loop();
+
+  
 };
