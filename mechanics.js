@@ -78,7 +78,7 @@ window.onload = function () {
     "You can't escape the loop, can you?",
     "Your ghost walks where you fell."
   ];
-
+  
   let currentDeathMessage = "";
 
   const canvas = document.getElementById("myCanvas");
