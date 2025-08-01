@@ -1,6 +1,6 @@
 window.onload = function () {
-  // Configurable background and world width
-  const backgroundWidth = 2400;
+  // Level width (loaded from JSON)
+  let levelWidth = 2400;
   let worldHeight;
 
   // Hitbox scaling variables
@@ -12,7 +12,7 @@ window.onload = function () {
   // Player properties
   const player = {
     x: 100,
-    y: 360, // Placeholder, will be set to worldHeight / 2 - height / 2 after canvas initialization
+    y: 360,
     width: 100,
     height: 100,
     velX: 0,
@@ -26,17 +26,67 @@ window.onload = function () {
     deathFrame: 0,
     deathTimer: 0,
     showDeathScreen: false,
+    finished: false,
   };
 
-  // Flip square
-  const flipSquare = {
-    x: backgroundWidth - 80,
-    y: 620, // Will be set to worldHeight - 80 after canvas initialization
+  // Flip square (loaded from JSON)
+  let flipSquare = {
+    x: levelWidth - 80,
+    y: 620,
     width: 60,
     height: 60,
     color: "blue",
-    flipped: false, // Start with normal gravity
+    flipped: false,
+    enabled: true,
   };
+
+  // Finish area (loaded from JSON)
+  let finish = {
+    x: levelWidth - 140,
+    y: 620,
+    width: 60,
+    height: 60,
+    color: "yellow",
+  };
+
+  // Ghost properties
+  const ghost = {
+    histories: [],
+    currentHistoryIndex: -1,
+    currentFrame: 0,
+    opacity: 0.3,
+    active: false,
+    lifeCount: 0,
+  };
+
+  // Death screen dialogs
+  const firstDeathDialogs = [
+    "Hello, newcomer! Welcome to the cave.",
+    "You're new here, aren't you? Conjurer coded this trap just for you!",
+    "First time? RatChat drew those spikes with love.",
+    "Braxtyn's audio haunts this place. Hear it echo?",
+    "A fresh soul! Conjurer says 'enjoy the bugs!'",
+    "RatChat's art makes death look so pretty, right?",
+    "Braxtyn programmed that jump sound just for your first fall!",
+    "Newbie! Conjurer hid some secrets in the code.",
+    "First death? RatChat sketched your doom in pixels.",
+    "Welcome! Braxtyn's music loops like your fate."
+  ];
+  const loopDeathDialogs = [
+    "You're back... again. Don't you feel it?",
+    "This isn't the first time you've died here.",
+    "The cave remembers your every step.",
+    "Why does this feel so familiar?",
+    "You're trapped in a cycle, aren't you?",
+    "Your shadow moves before you do...",
+    "How many times have you run this path?",
+    "The spikes know your name now.",
+    "You can't escape the loop, can you?",
+    "Your ghost walks where you fell."
+  ];
+
+  // Current death screen message
+  let currentDeathMessage = "";
 
   // Get canvas and context
   const canvas = document.getElementById("myCanvas");
@@ -55,8 +105,11 @@ window.onload = function () {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     worldHeight = canvas.height;
-    player.y = worldHeight / 2 - player.height / 2; // Center player on y-axis
-    flipSquare.y = worldHeight - 80;
+    player.y = worldHeight / 2 - player.height / 2;
+    if (flipSquare.enabled) {
+      flipSquare.y = worldHeight - flipSquare.height;
+    }
+    finish.y = worldHeight - finish.height;
     console.log(
       `Canvas resized: ${canvas.width}x${canvas.height}, player.y: ${player.y}`
     );
@@ -134,98 +187,104 @@ window.onload = function () {
     .play()
     .catch((e) => console.error("Failed to play background sound:", e));
 
-  // Get selected level from localStorage (default to 'level1')
-  const selectedLevel = localStorage.getItem("selectedLevel") || "level1";
-
   // Level data
   let platforms = [];
   let spikes = [];
   let coins = [];
-  let spawnPoint = { x: 100, y: 360 }; // Placeholder, y will be updated dynamically
+  let spawnPoint = { x: 100, y: 360 };
+  let selectedLevel = localStorage.getItem("selectedLevel") || "level1";
 
   // Fallback level
   const fallbackLevel = {
+    width: 2400,
     platforms: [
       { x: 0, y: 20, width: 2400, height: 20 },
       { x: 0, y: 720, width: 2400, height: 20 },
     ],
     spikes: [],
     coins: [],
-    spawnPoint: { x: 100, y: 360 }, // Placeholder, y will be updated
+    spawnPoint: { x: 100, y: 360 },
+    finish: { x: 2260, y: 620, width: 60, height: 60, color: "yellow" },
+    flipSquare: { enabled: false },
   };
 
   // Load level design from JSON
-  fetch(`levels/${selectedLevel}.json`)
-    .then((res) => {
-      if (!res.ok)
-        throw new Error(
-          `Failed to load levels/${selectedLevel}.json: ${res.status}`
-        );
-      return res.json();
-    })
-    .then((level) => {
-      platforms = level.platforms || [];
-      spikes = level.spikes || [];
-      coins = level.coins || [];
-      spawnPoint = level.spawnPoint || {
-        x: 100,
-        y: worldHeight / 2 - player.height / 2,
-      };
-      player.x = spawnPoint.x;
-      player.y = worldHeight / 2 - player.height / 2; // Center player on y-axis
-      console.log(`Loaded level: ${selectedLevel}, player.y: ${player.y}`);
-    })
-    .catch((error) => {
-      console.error("Error loading level:", error);
-      platforms = fallbackLevel.platforms;
-      spikes = fallbackLevel.spikes;
-      coins = fallbackLevel.coins;
-      spawnPoint = fallbackLevel.spawnPoint;
-      player.x = spawnPoint.x;
-      player.y = worldHeight / 2 - player.height / 2; // Center player on y-axis
-      console.log("Using fallback level, player.y: ${player.y}");
-    });
+  function loadLevel() {
+    fetch(`levels/${selectedLevel}.json`)
+      .then((res) => {
+        if (!res.ok)
+          throw new Error(
+            `Failed to load levels/${selectedLevel}.json: ${res.status}`
+          );
+        return res.json();
+      })
+      .then((level) => {
+        levelWidth = level.width || 2400;
+        platforms = level.platforms || [];
+        spikes = level.spikes || [];
+        coins = level.coins || [];
+        spawnPoint = level.spawnPoint || {
+          x: 100,
+          y: worldHeight / 2 - player.height / 2,
+        };
+        finish = level.finish || {
+          x: levelWidth - 140,
+          y: worldHeight - 80,
+          width: 60,
+          height: 60,
+          color: "yellow",
+        };
+        flipSquare = level.flipSquare || { enabled: false };
+        if (flipSquare.enabled) {
+          flipSquare = {
+            x: flipSquare.x || levelWidth - 80,
+            y: flipSquare.y || worldHeight - 80,
+            width: flipSquare.width || 60,
+            height: flipSquare.height || 60,
+            color: flipSquare.color || "blue",
+            flipped: false,
+            enabled: true,
+          };
+        } else {
+          flipSquare = { enabled: false };
+        }
+        player.x = spawnPoint.x;
+        player.y = worldHeight / 2 - player.height / 2;
+        console.log(`Loaded level: ${selectedLevel}, width: ${levelWidth}, player.y: ${player.y}`);
+      })
+      .catch((error) => {
+        console.error("Error loading level:", error);
+        levelWidth = fallbackLevel.width;
+        platforms = fallbackLevel.platforms;
+        spikes = fallbackLevel.spikes;
+        coins = fallbackLevel.coins;
+        spawnPoint = fallbackLevel.spawnPoint;
+        finish = fallbackLevel.finish;
+        flipSquare = fallbackLevel.flipSquare;
+        player.x = spawnPoint.x;
+        player.y = worldHeight / 2 - player.height / 2;
+        selectedLevel = "level1";
+        localStorage.setItem("selectedLevel", selectedLevel);
+        console.log("Using fallback level, width:", levelWidth, "player.y:", player.y);
+      });
+  }
+  loadLevel();
 
   let facing = "right";
   let jumping = false;
-  let wWasPressed = false;
   let crouching = false;
-
-  // Walking animation state
   let walkFrame = 0;
   let walkTimer = 0;
   const walkFrameRate = 10;
-
   const gravity = 0.7;
   const friction = 0.8;
   const keys = {};
 
   // Event listeners for key presses
   document.addEventListener("keydown", (e) => {
-    if (player.isDying || player.showDeathScreen) {
-      if (player.showDeathScreen) {
-        player.x = spawnPoint.x;
-        player.y = worldHeight / 2 - player.height / 2; // Respawn at y-center
-        player.velX = 0;
-        player.velY = 0;
-        player.isDying = false;
-        player.deathTimer = 0;
-        player.deathFrame = 0;
-        player.showDeathScreen = false;
-        flipSquare.flipped = false;
-        jumping = false;
-        crouching = false;
-        for (let key in keys) {
-          keys[key] = false;
-        }
-        cameraX = Math.max(
-          0,
-          Math.min(
-            player.x + player.width / 2 - canvas.width / 2,
-            backgroundWidth - canvas.width
-          )
-        );
-        console.log("Respawned player at x:", player.x, "y:", player.y);
+    if (player.isDying || player.showDeathScreen || player.finished) {
+      if (player.showDeathScreen || player.finished) {
+        respawnPlayer();
       }
       return;
     }
@@ -247,32 +306,21 @@ window.onload = function () {
     }
   });
 
-  document.addEventListener("keydown", (e) => {
-    const key = e.key.toLowerCase();
-    keys[key] = true;
-
-    if (key === "a") facing = "left";
-    if (key === "d") facing = "right";
-  });
-
   document.addEventListener("keyup", (e) => {
-    if (player.isDying || player.showDeathScreen) return;
+    if (player.isDying || player.showDeathScreen || player.finished) return;
     const key = e.key.toLowerCase();
     keys[key] = false;
     if ((e.code === "Space" || key === "w") && player.grounded) {
       e.preventDefault();
       if (crouching) crouching = false;
-
-      // FIX: make jump direction correct
-      player.velY = flipSquare.flipped ? player.jumpPower : -player.jumpPower;
-
+      player.velY = flipSquare.enabled && flipSquare.flipped ? player.jumpPower : -player.jumpPower;
       player.grounded = false;
       jumping = true;
       console.log(
         "Jump triggered, velY:",
         player.velY,
         "flipped:",
-        flipSquare.flipped
+        flipSquare.enabled ? flipSquare.flipped : false
       );
       if (soundJump) {
         soundJump.currentTime = 0;
@@ -293,18 +341,10 @@ window.onload = function () {
       aBox.x += (a.width - aBox.width) / 2;
       aBox.y += (a.height - aBox.height) / 2;
       const isUp = b.direction === "up";
-      const isFlipped = flipSquare.flipped;
-      if ((!isUp && !isFlipped) || (isUp && isFlipped)) {
-        bBox.height =
-          b.height *
-          (b.type === "big" ? spikeBigHitboxScaleY : spikeSmallHitboxScaleY);
-        bBox.y = b.y + b.height - bBox.height;
-      } else {
-        bBox.height =
-          b.height *
-          (b.type === "big" ? spikeBigHitboxScaleY : spikeSmallHitboxScaleY);
-        bBox.y = b.y;
-      }
+      bBox.height =
+        b.height *
+        (b.type === "big" ? spikeBigHitboxScaleY : spikeSmallHitboxScaleY);
+      bBox.y = isUp ? b.y : b.y + b.height - bBox.height;
     }
 
     return (
@@ -315,8 +355,75 @@ window.onload = function () {
     );
   }
 
-  function update() {
-    flipSquare.y = worldHeight - 80;
+  function applyCornerBlur() {
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2,
+      canvas.height / 2,
+      Math.min(canvas.width, canvas.height) * 0.3,
+      canvas.width / 2,
+      canvas.height / 2,
+      Math.max(canvas.width, canvas.height) * 0.7
+    );
+    gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0.7)");
+
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  function respawnPlayer() {
+    const wasFinished = player.finished;
+    player.x = spawnPoint.x;
+    player.y = worldHeight / 2 - player.height / 2;
+    player.velX = 0;
+    player.velY = 0;
+    player.isDying = false;
+    player.deathTimer = 0;
+    player.deathFrame = 0;
+    player.showDeathScreen = false;
+    player.finished = false;
+    if (flipSquare.enabled) {
+      flipSquare.flipped = false;
+    }
+    jumping = false;
+    crouching = false;
+    ghost.currentFrame = 0;
+    if (ghost.active) {
+      ghost.lifeCount++;
+      ghost.histories.push([]);
+    } else {
+      ghost.histories = [[]];
+    }
+    ghost.currentHistoryIndex = ghost.histories.length - 2;
+    currentDeathMessage = "";
+    for (let key in keys) {
+      keys[key] = false;
+    }
+    if (wasFinished) {
+      const currentLevelNum = parseInt(selectedLevel.replace("level", "")) || 1;
+      selectedLevel = `level${currentLevelNum + 1}`;
+      localStorage.setItem("selectedLevel", selectedLevel);
+      loadLevel();
+      console.log(`Advancing to next level: ${selectedLevel}`);
+    }
+    cameraX = Math.max(
+      0,
+      Math.min(
+        player.x + player.width / 2 - canvas.width / 2,
+        levelWidth - canvas.width
+      )
+    );
+    console.log("Respawned player at x:", player.x, "y:", player.y);
+  }
+
+  function updatePlayer() {
+    if (flipSquare.enabled) {
+      flipSquare.y = worldHeight - flipSquare.height;
+    }
+    finish.y = worldHeight - finish.height;
 
     if (player.isDying) {
       player.deathTimer++;
@@ -326,12 +433,22 @@ window.onload = function () {
         }
       } else if (player.deathTimer >= 60) {
         player.showDeathScreen = true;
-        player.deaths++;
+        if (!currentDeathMessage) {
+          if (player.deaths === 0) {
+            player.deaths = 1;
+            ghost.active = true;
+            currentDeathMessage = firstDeathDialogs[Math.floor(Math.random() * firstDeathDialogs.length)];
+          } else {
+            currentDeathMessage = loopDeathDialogs[Math.floor(Math.random() * loopDeathDialogs.length)];
+          }
+        }
       }
       return;
     }
 
-    if (player.showDeathScreen) return;
+    if (player.showDeathScreen || player.finished) {
+      return;
+    }
 
     let walking = false;
     if ((keys["a"] || keys["d"]) && player.grounded) {
@@ -349,10 +466,10 @@ window.onload = function () {
       }
     }
     if (keys["a"]) {
-      player.velX = -player.speed; // Always move left on screen
+      player.velX = -player.speed;
       facing = "left";
     } else if (keys["d"]) {
-      player.velX = player.speed; // Always move right on screen
+      player.velX = player.speed;
       facing = "right";
     } else {
       player.velX = 0;
@@ -369,7 +486,7 @@ window.onload = function () {
       walkTimer = 0;
     }
 
-    player.velY += flipSquare.flipped ? -gravity : gravity;
+    player.velY += (flipSquare.enabled && flipSquare.flipped) ? -gravity : gravity;
     player.velX *= friction;
     player.x += player.velX;
     player.y += player.velY;
@@ -378,14 +495,14 @@ window.onload = function () {
       0,
       Math.min(
         player.x + player.width / 2 - canvas.width / 2,
-        backgroundWidth - canvas.width
+        levelWidth - canvas.width
       )
     );
 
     player.grounded = false;
     for (const platform of platforms) {
       if (checkCollision(player, platform)) {
-        if (flipSquare.flipped) {
+        if (flipSquare.enabled && flipSquare.flipped) {
           if (
             player.velY <= 0 &&
             player.y - player.velY >= platform.y + platform.height
@@ -411,8 +528,7 @@ window.onload = function () {
       }
     }
 
-    // Check ground/ceiling collision
-    if (flipSquare.flipped) {
+    if (flipSquare.enabled && flipSquare.flipped) {
       if (player.y + player.height > worldHeight) {
         player.y = worldHeight - player.height;
         player.velY = 0;
@@ -439,8 +555,8 @@ window.onload = function () {
     });
 
     if (player.x < 0) player.x = 0;
-    if (player.x + player.width > backgroundWidth)
-      player.x = backgroundWidth - player.width;
+    if (player.x + player.width > levelWidth)
+      player.x = levelWidth - player.width;
 
     for (const spike of spikes) {
       if (checkCollision(player, spike, true)) {
@@ -453,30 +569,51 @@ window.onload = function () {
       }
     }
 
-    if (checkCollision(player, flipSquare)) {
+    if (flipSquare.enabled && checkCollision(player, flipSquare)) {
       flipSquare.flipped = !flipSquare.flipped;
       console.log("Gravity flipped, flipped:", flipSquare.flipped);
     }
 
-    console.log(
-      "Player state - grounded:",
-      player.grounded,
-      "y:",
-      player.y,
-      "velY:",
-      player.velY
-    );
+    if (checkCollision(player, finish)) {
+      player.finished = true;
+      console.log("Reached finish area at x:", finish.x);
+    }
+  }
+
+  function updateGhost() {
+    if (player.showDeathScreen || player.finished) {
+      if (ghost.active && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0) {
+        ghost.currentFrame = (ghost.currentFrame + 1) % ghost.histories[ghost.currentHistoryIndex].length;
+      }
+      return;
+    }
+
+    if (ghost.histories.length === 0) {
+      ghost.histories.push([]);
+    }
+    ghost.histories[ghost.histories.length - 1].push({
+      x: player.x,
+      y: player.y,
+      facing: facing,
+      jumping: jumping,
+      crouching: crouching,
+      walkFrame: walkFrame,
+      flipped: flipSquare.enabled ? flipSquare.flipped : false,
+    });
+
+    if (ghost.active && ghost.lifeCount < 5 && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0) {
+      ghost.currentFrame = (ghost.currentFrame + 1) % ghost.histories[ghost.currentHistoryIndex].length;
+    }
   }
 
   function draw() {
     try {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw fallback rectangle
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (player.showDeathScreen) {
+      if (player.showDeathScreen || player.finished) {
         ctx.filter = "blur(5px)";
       }
 
@@ -484,10 +621,10 @@ window.onload = function () {
       ctx.translate(-cameraX, 0);
 
       if (caveBackground.complete && caveBackground.naturalWidth !== 0) {
-        ctx.drawImage(caveBackground, 0, 0, backgroundWidth, canvas.height);
+        ctx.drawImage(caveBackground, 0, 0, levelWidth, canvas.height);
       } else {
         ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, backgroundWidth, canvas.height);
+        ctx.fillRect(0, 0, levelWidth, canvas.height);
       }
 
       ctx.fillStyle = "green";
@@ -507,10 +644,11 @@ window.onload = function () {
       for (const spike of spikes) {
         let img = spike.type === "big" ? spikeImgBig : spikeImgSmall;
         const isUp = spike.direction === "up";
-        const isFlipped = flipSquare.flipped;
         if (img.complete && img.naturalWidth !== 0) {
           ctx.save();
-          if ((!isUp && !isFlipped) || (isUp && isFlipped)) {
+          if (isUp) {
+            ctx.drawImage(img, spike.x, spike.y, spike.width, spike.height);
+          } else {
             ctx.translate(
               spike.x + spike.width / 2,
               spike.y + spike.height / 2
@@ -523,37 +661,113 @@ window.onload = function () {
               spike.width,
               spike.height
             );
-          } else {
-            ctx.drawImage(img, spike.x, spike.y, spike.width, spike.height);
           }
           ctx.restore();
         } else {
           ctx.fillStyle = "gray";
           ctx.beginPath();
-          if ((!isUp && !isFlipped) || (isUp && isFlipped)) {
-            ctx.moveTo(spike.x, spike.y + spike.height);
-            ctx.lineTo(spike.x + spike.width / 2, spike.y);
-            ctx.lineTo(spike.x + spike.width, spike.y + spike.height);
-            ctx.closePath();
-          } else {
+          if (isUp) {
             ctx.moveTo(spike.x, spike.y);
             ctx.lineTo(spike.x + spike.width / 2, spike.y + spike.height);
             ctx.lineTo(spike.x + spike.width, spike.y);
+            ctx.closePath();
+          } else {
+            ctx.moveTo(spike.x, spike.y + spike.height);
+            ctx.lineTo(spike.x + spike.width / 2, spike.y);
+            ctx.lineTo(spike.x + spike.width, spike.y + spike.height);
             ctx.closePath();
           }
           ctx.fill();
         }
       }
 
-      ctx.fillStyle = flipSquare.color;
+      if (flipSquare.enabled) {
+        ctx.fillStyle = flipSquare.color;
+        ctx.fillRect(
+          flipSquare.x,
+          flipSquare.y,
+          flipSquare.width,
+          flipSquare.height
+        );
+      }
+
+      ctx.fillStyle = finish.color;
       ctx.fillRect(
-        flipSquare.x,
-        flipSquare.y,
-        flipSquare.width,
-        flipSquare.height
+        finish.x,
+        finish.y,
+        finish.width,
+        finish.height
       );
 
-      let spriteFacing = flipSquare.flipped
+      if (ghost.active && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0 && (player.showDeathScreen || ghost.lifeCount < 5)) {
+        const ghostState = ghost.histories[ghost.currentHistoryIndex][ghost.currentFrame % ghost.histories[ghost.currentHistoryIndex].length];
+        let imgToDraw;
+        let spriteFacing = (flipSquare.enabled && ghostState.flipped)
+          ? ghostState.facing === "left"
+            ? "right"
+            : "left"
+          : ghostState.facing;
+
+        if (ghostState.jumping) {
+          imgToDraw =
+            spriteFacing === "left" ? playerImgJumpLeft : playerImgJumpRight;
+        } else if (ghostState.crouching) {
+          imgToDraw =
+            spriteFacing === "left" ? playerImgCrouchLeft : playerImgCrouchRight;
+        } else if (ghostState.walkFrame !== 0) {
+          if (spriteFacing === "left") {
+            imgToDraw =
+              ghostState.walkFrame === 0
+                ? playerImgWalkLeft1
+                : playerImgWalkLeft2;
+          } else {
+            imgToDraw =
+              ghostState.walkFrame === 0
+                ? playerImgWalkRight1
+                : playerImgWalkRight2;
+          }
+        } else if (spriteFacing === "left") {
+          imgToDraw = playerImgLeft;
+        } else {
+          imgToDraw = playerImgRight;
+        }
+
+        if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
+          ctx.save();
+          ctx.globalAlpha = ghost.opacity;
+          if (flipSquare.enabled && ghostState.flipped) {
+            ctx.translate(
+              ghostState.x + player.width / 2,
+              ghostState.y + player.height / 2
+            );
+            ctx.rotate(Math.PI);
+            ctx.drawImage(
+              imgToDraw,
+              -player.width / 2,
+              -player.height / 2,
+              player.width,
+              player.height
+            );
+          } else {
+            ctx.drawImage(
+              imgToDraw,
+              ghostState.x,
+              ghostState.y,
+              player.width,
+              player.height
+            );
+          }
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.globalAlpha = ghost.opacity;
+          ctx.fillStyle = "white";
+          ctx.fillRect(ghostState.x, ghostState.y, player.width, player.height);
+          ctx.restore();
+        }
+      }
+
+      let spriteFacing = (flipSquare.enabled && flipSquare.flipped)
         ? facing === "left"
           ? "right"
           : "left"
@@ -572,10 +786,10 @@ window.onload = function () {
       } else if ((keys["a"] || keys["d"]) && player.grounded) {
         if (spriteFacing === "left") {
           imgToDraw =
-            player.walkFrame === 0 ? playerImgWalkLeft1 : playerImgWalkLeft2;
+            walkFrame === 0 ? playerImgWalkLeft1 : playerImgWalkLeft2;
         } else {
           imgToDraw =
-            player.walkFrame === 0 ? playerImgWalkRight1 : playerImgWalkRight2;
+            walkFrame === 0 ? playerImgWalkRight1 : playerImgWalkRight2;
         }
       } else if (spriteFacing === "left") {
         imgToDraw = playerImgLeft;
@@ -585,7 +799,7 @@ window.onload = function () {
 
       if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
         ctx.save();
-        if (flipSquare.flipped) {
+        if (flipSquare.enabled && flipSquare.flipped) {
           ctx.translate(
             player.x + player.width / 2,
             player.y + player.height / 2
@@ -615,20 +829,25 @@ window.onload = function () {
 
       ctx.restore();
 
-      if (!player.showDeathScreen) {
+      if (!player.showDeathScreen && !player.finished) {
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Coins: ${player.coinsCollected}`, 10, 30);
         ctx.fillText(`Deaths: ${player.deaths}`, 10, 60);
         ctx.fillText(`Level: ${selectedLevel}`, 10, 90);
-      } else {
+      } else if (player.showDeathScreen) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.filter = "none";
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(`You Died!`, canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText(`You Died!`, canvas.width / 2, canvas.height / 2 - 60);
+        ctx.fillText(
+          currentDeathMessage,
+          canvas.width / 2,
+          canvas.height / 2 - 30
+        );
         ctx.fillText(
           `Coins: ${player.coinsCollected}`,
           canvas.width / 2,
@@ -645,12 +864,47 @@ window.onload = function () {
           canvas.height / 2 + 60
         );
         ctx.textAlign = "left";
+      } else if (player.finished) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.filter = "none";
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`You Win!`, canvas.width / 2, canvas.height / 2 - 60);
+        ctx.fillText(
+          `Congratulations, you reached the finish!`,
+          canvas.width / 2,
+          canvas.height / 2 - 30
+        );
+        ctx.fillText(
+          `Coins: ${player.coinsCollected}`,
+          canvas.width / 2,
+          canvas.height / 2
+        );
+        ctx.fillText(
+          `Deaths: ${player.deaths}`,
+          canvas.width / 2,
+          canvas.height / 2 + 30
+        );
+        ctx.fillText(
+          `Press any key to play next level`,
+          canvas.width / 2,
+          canvas.height / 2 + 60
+        );
+        ctx.textAlign = "left";
       }
 
+      applyCornerBlur();
       ctx.filter = "none";
     } catch (e) {
       console.error("Error in draw function:", e);
     }
+  }
+
+  function update() {
+    updatePlayer();
+    updateGhost();
   }
 
   function loop() {
@@ -665,4 +919,3 @@ window.onload = function () {
   console.log("Starting game loop");
   loop();
 };
-

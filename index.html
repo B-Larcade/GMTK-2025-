@@ -82,10 +82,10 @@
         document.getElementById('levelSelect').style.display = 'none';
         document.getElementById('tutorial').style.display = 'none';
         document.getElementById('options').style.display = 'none';
-        // Here you would call your game start logic
+        
         // gameload();
       }
-      // Optionally, draw a background on the canvas
+      
       function render(){
         const co = document.getElementById("c").getContext("2d");
         co.fillStyle = "#222";
@@ -93,7 +93,7 @@
       }
         function startGame(levelName) {
             localStorage.setItem('selectedLevel', levelName);
-            window.location.href = 'canvas.html'; // or wherever your game runs
+            window.location.href = 'canvas.html'; 
         }
       render();
     </script>
