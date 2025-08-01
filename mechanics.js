@@ -1,6 +1,6 @@
 window.onload = function () {
   // Level width (loaded from JSON)
-  let levelWidth = 2400;
+  let levelWidth = 3000;
   let worldHeight;
 
   // Hitbox scaling variables
@@ -12,7 +12,7 @@ window.onload = function () {
   // Player properties
   const player = {
     x: 100,
-    y: 360,
+    y: 550, // spawnPoint.y (650) - player.height (100)
     width: 100,
     height: 100,
     velX: 0,
@@ -31,10 +31,10 @@ window.onload = function () {
 
   // Flip square (loaded from JSON)
   let flipSquare = {
-    x: levelWidth - 80,
-    y: 620,
+    x: 2700,
+    y: 0,
     width: 60,
-    height: 60,
+    height: 100,
     color: "blue",
     flipped: false,
     enabled: true,
@@ -42,8 +42,8 @@ window.onload = function () {
 
   // Finish area (loaded from JSON)
   let finish = {
-    x: levelWidth - 140,
-    y: 620,
+    x: 100,
+    y: 60,
     width: 60,
     height: 60,
     color: "yellow",
@@ -100,19 +100,14 @@ window.onload = function () {
     return;
   }
 
-  // Set canvas size to browser window and update world height
+  // Set fixed canvas resolution and scale to window
   function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    worldHeight = canvas.height;
-    player.y = worldHeight / 2 - player.height / 2;
-    if (flipSquare.enabled) {
-      flipSquare.y = worldHeight - flipSquare.height;
-    }
-    finish.y = worldHeight - finish.height;
-    console.log(
-      `Canvas resized: ${canvas.width}x${canvas.height}, player.y: ${player.y}`
-    );
+    canvas.width = 1280; // Fixed width
+    canvas.height = 720; // Fixed height
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    worldHeight = canvas.height; // Set once, fixed at 720
+    console.log(`Canvas set: ${canvas.width}x${canvas.height}, styled to ${canvas.style.width}x${canvas.style.height}`);
   }
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
@@ -120,12 +115,33 @@ window.onload = function () {
   // Camera for scrolling
   let cameraX = 0;
 
-  // Load images with error handling
-  const caveBackground = new Image();
-  caveBackground.src = "sprites/background.png";
-  caveBackground.onerror = () =>
-    console.error("Failed to load sprites/background.png");
+  // Load background images for parallax
+  const backgroundFar = new Image();
+  backgroundFar.src = "sprites/darklayer.png";
+  backgroundFar.onerror = () =>
+    console.error("Failed to load sprites/darklayer.png");
 
+  const backgroundMid = new Image();
+  backgroundMid.src = "sprites/opening.png";
+  backgroundMid.onerror = () =>
+    console.error("Failed to load sprites/opening.png");
+
+  const foregroundMid = new Image();
+  foregroundMid.src = "sprites/spikesfloor.png";
+  foregroundMid.onerror = () =>
+    console.error("Failed to load sprites/spikesfloor.png");
+
+  const foregroundNear = new Image();
+  foregroundNear.src = "sprites/pillars.png";
+  foregroundNear.onerror = () =>
+    console.error("Failed to load sprites/pillars.png");
+
+  const foregroundStationary = new Image();
+  foregroundStationary.src = "sprites/frame.png";
+  foregroundStationary.onerror = () =>
+    console.error("Failed to load sprites/frame.png");
+
+  // Load other images
   const coinImg = new Image();
   coinImg.src = "sprites/coin.png";
   coinImg.onerror = () => console.error("Failed to load sprites/coin.png");
@@ -191,20 +207,20 @@ window.onload = function () {
   let platforms = [];
   let spikes = [];
   let coins = [];
-  let spawnPoint = { x: 100, y: 360 };
+  let spawnPoint = { x: 100, y: 650 };
   let selectedLevel = localStorage.getItem("selectedLevel") || "level1";
 
   // Fallback level
   const fallbackLevel = {
-    width: 2400,
+    width: 3000,
     platforms: [
-      { x: 0, y: 20, width: 2400, height: 20 },
-      { x: 0, y: 720, width: 2400, height: 20 },
+      { x: 0, y: 20, width: 3000, height: 20 },
+      { x: 0, y: 720, width: 3000, height: 20 },
     ],
     spikes: [],
     coins: [],
-    spawnPoint: { x: 100, y: 360 },
-    finish: { x: 2260, y: 620, width: 60, height: 60, color: "yellow" },
+    spawnPoint: { x: 100, y: 650 },
+    finish: { x: 100, y: 60, width: 60, height: 60, color: "yellow" },
     flipSquare: { enabled: false },
   };
 
@@ -219,17 +235,17 @@ window.onload = function () {
         return res.json();
       })
       .then((level) => {
-        levelWidth = level.width || 2400;
+        levelWidth = level.width || 3000;
         platforms = level.platforms || [];
         spikes = level.spikes || [];
         coins = level.coins || [];
         spawnPoint = level.spawnPoint || {
           x: 100,
-          y: worldHeight / 2 - player.height / 2,
+          y: 650,
         };
         finish = level.finish || {
-          x: levelWidth - 140,
-          y: worldHeight - 80,
+          x: 100,
+          y: 60,
           width: 60,
           height: 60,
           color: "yellow",
@@ -237,10 +253,10 @@ window.onload = function () {
         flipSquare = level.flipSquare || { enabled: false };
         if (flipSquare.enabled) {
           flipSquare = {
-            x: flipSquare.x || levelWidth - 80,
-            y: flipSquare.y || worldHeight - 80,
+            x: flipSquare.x || 2700,
+            y: flipSquare.y || 0,
             width: flipSquare.width || 60,
-            height: flipSquare.height || 60,
+            height: flipSquare.height || 100,
             color: flipSquare.color || "blue",
             flipped: false,
             enabled: true,
@@ -249,7 +265,7 @@ window.onload = function () {
           flipSquare = { enabled: false };
         }
         player.x = spawnPoint.x;
-        player.y = worldHeight / 2 - player.height / 2;
+        player.y = spawnPoint.y - player.height; // Bottom at spawnPoint.y
         console.log(`Loaded level: ${selectedLevel}, width: ${levelWidth}, player.y: ${player.y}`);
       })
       .catch((error) => {
@@ -262,7 +278,7 @@ window.onload = function () {
         finish = fallbackLevel.finish;
         flipSquare = fallbackLevel.flipSquare;
         player.x = spawnPoint.x;
-        player.y = worldHeight / 2 - player.height / 2;
+        player.y = spawnPoint.y - player.height;
         selectedLevel = "level1";
         localStorage.setItem("selectedLevel", selectedLevel);
         console.log("Using fallback level, width:", levelWidth, "player.y:", player.y);
@@ -377,7 +393,7 @@ window.onload = function () {
   function respawnPlayer() {
     const wasFinished = player.finished;
     player.x = spawnPoint.x;
-    player.y = worldHeight / 2 - player.height / 2;
+    player.y = spawnPoint.y - player.height; // Bottom at spawnPoint.y
     player.velX = 0;
     player.velY = 0;
     player.isDying = false;
@@ -420,11 +436,6 @@ window.onload = function () {
   }
 
   function updatePlayer() {
-    if (flipSquare.enabled) {
-      flipSquare.y = worldHeight - flipSquare.height;
-    }
-    finish.y = worldHeight - finish.height;
-
     if (player.isDying) {
       player.deathTimer++;
       if (player.deathTimer < 30) {
@@ -576,7 +587,7 @@ window.onload = function () {
 
     if (checkCollision(player, finish)) {
       player.finished = true;
-      console.log("Reached finish area at x:", finish.x);
+      console.log("Reached finish area at x:", finish.x, "y:", finish.y);
     }
   }
 
@@ -620,13 +631,39 @@ window.onload = function () {
       ctx.save();
       ctx.translate(-cameraX, 0);
 
-      if (caveBackground.complete && caveBackground.naturalWidth !== 0) {
-        ctx.drawImage(caveBackground, 0, 0, levelWidth, canvas.height);
-      } else {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, levelWidth, canvas.height);
+      // Draw parallax backgrounds and foregrounds
+      const parallaxFar = 0.2; // Background far
+      const parallaxMidBg = 0.4; // Background mid
+      const parallaxMidFg = 0.6; // Foreground mid
+      const parallaxNear = 0.8; // Foreground near
+      const parallaxStationary = 0.0; // Stationary foreground
+
+      // Background far
+      if (backgroundFar.complete && backgroundFar.naturalWidth !== 0) {
+        const farOffset = (cameraX * parallaxFar) % levelWidth;
+        ctx.drawImage(backgroundFar, -farOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(backgroundFar, -farOffset + levelWidth, 0, levelWidth, canvas.height);
+      }
+      // Background mid
+      if (backgroundMid.complete && backgroundMid.naturalWidth !== 0) {
+        const midBgOffset = (cameraX * parallaxMidBg) % levelWidth;
+        ctx.drawImage(backgroundMid, -midBgOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(backgroundMid, -midBgOffset + levelWidth, 0, levelWidth, canvas.height);
+      }
+      // Foreground mid
+      if (foregroundMid.complete && foregroundMid.naturalWidth !== 0) {
+        const midFgOffset = (cameraX * parallaxMidFg) % levelWidth;
+        ctx.drawImage(foregroundMid, -midFgOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(foregroundMid, -midFgOffset + levelWidth, 0, levelWidth, canvas.height);
+      }
+      // Foreground near
+      if (foregroundNear.complete && foregroundNear.naturalWidth !== 0) {
+        const nearOffset = (cameraX * parallaxNear) % levelWidth;
+        ctx.drawImage(foregroundNear, -nearOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(foregroundNear, -nearOffset + levelWidth, 0, levelWidth, canvas.height);
       }
 
+      // Draw game elements (platforms, coins, spikes, etc.)
       ctx.fillStyle = "green";
       for (const platform of platforms) {
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
@@ -698,6 +735,13 @@ window.onload = function () {
         finish.width,
         finish.height
       );
+
+      // Draw stationary foreground after game elements
+      if (foregroundStationary.complete && foregroundStationary.naturalWidth !== 0) {
+        const stationaryOffset = (cameraX * parallaxStationary) % levelWidth;
+        ctx.drawImage(foregroundStationary, -stationaryOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(foregroundStationary, -stationaryOffset + levelWidth, 0, levelWidth, canvas.height);
+      }
 
       if (ghost.active && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0 && (player.showDeathScreen || ghost.lifeCount < 5)) {
         const ghostState = ghost.histories[ghost.currentHistoryIndex][ghost.currentFrame % ghost.histories[ghost.currentHistoryIndex].length];
