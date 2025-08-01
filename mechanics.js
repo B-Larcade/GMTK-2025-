@@ -665,3 +665,4 @@ window.onload = function () {
   console.log("Starting game loop");
   loop();
 };
+
