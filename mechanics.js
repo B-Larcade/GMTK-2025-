@@ -161,7 +161,7 @@ window.onload = function () {
   const playerImgCrouchRight = new Image();
   playerImgCrouchRight.src = "sprites/crouchRight.png";
   const playerImgCrouchLeft = new Image();
-  playerImgCrouchLeft.src = "sprites/CrouchLeft.png";
+  playerImgCrouchLeft.src = "sprites/crouchLeft.png";
 
   const spikeImgSmall = new Image();
   spikeImgSmall.src = "sprites/Spikes.png";
