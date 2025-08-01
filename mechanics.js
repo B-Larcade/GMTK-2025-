@@ -173,9 +173,9 @@ window.onload = function () {
     console.error("Failed to load sprites/SpikesLong.png");
 
   // Sound effects
-  const soundWalk = new Audio("sounds/walking.mp3");
-  soundWalk.volume = 0.2;
-  soundWalk.playbackRate = 1.5;
+  const soundWalk = new Audio("sounds/playerwalk.wav");
+  soundWalk.volume = 0.4;
+  soundWalk.playbackRate = 3;
   const soundJump = new Audio("sounds/jump.wav");
   const soundCrouch = new Audio("sounds/crouch.wav");
   soundCrouch.volume = 0.5;
