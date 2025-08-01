@@ -104,7 +104,7 @@ window.onload = function () {
   window.addEventListener("resize", resizeCanvas);
 
   let cameraX = 0;
-  const backgroundFar=loadAsset("sprites/background/darklayer.png");
+  const backgroundFar=loadAsset("sprites/background/darkLayer.png");
   const backgroundMid = loadAsset("sprites/background/opening.png");
   const foregroundMid = loadAsset("sprites/background/spikesfloor.png");
   const foregroundNear = loadAsset("sprites/background/pillars.png");
@@ -126,8 +126,8 @@ window.onload = function () {
   const spikeImgSmall = loadAsset("sprites/spikes/spikes.png");
   const spikeImgBig = loadAsset("sprites/spikes/spikesLong.png");
   const platformLeftImg = loadAsset("sprites/platform/platformLeft.png");
-  const platformCenter1Img = loadAsset("sprites/platform/Center1.png");
-  const platformCenter2Img = loadAsset("sprites/platform/Center2.png");
+  const platformCenter1Img = loadAsset("sprites/platform/center1.png");
+  const platformCenter2Img = loadAsset("sprites/platform/center2.png");
   const platformRightImg = loadAsset("sprites/platform/platformRight.png");
 
   const soundWalk = loadAsset("sounds/playerwalk.wav");
