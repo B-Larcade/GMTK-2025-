@@ -1,23 +1,20 @@
 window.onload = function () {
-  // Level width (loaded from JSON)
   let levelWidth = 3000;
   let worldHeight;
 
-  // Hitbox scaling variables
   const playerHitboxScaleX = 0.1;
   const playerHitboxScaleY = 0.8;
   const spikeSmallHitboxScaleY = 0.5;
   const spikeBigHitboxScaleY = 0.25;
 
-  // Player properties
   const player = {
     x: 100,
-    y: 550, // spawnPoint.y (650) - player.height (100)
+    y: 550,
     width: 100,
     height: 100,
     velX: 0,
     velY: 0,
-    speed: 3,
+    speed: 4,
     jumpPower: 17,
     grounded: false,
     coinsCollected: 0,
@@ -29,27 +26,24 @@ window.onload = function () {
     finished: false,
   };
 
-  // Flip square (loaded from JSON)
   let flipSquare = {
     x: 2700,
-    y: 0,
+    y: 656,
     width: 60,
-    height: 100,
+    height: 64,
     color: "blue",
     flipped: false,
     enabled: true,
   };
 
-  // Finish area (loaded from JSON)
   let finish = {
-    x: 100,
-    y: 60,
+    x: 150,
+    y: 64,
     width: 60,
     height: 60,
     color: "yellow",
   };
 
-  // Ghost properties
   const ghost = {
     histories: [],
     currentHistoryIndex: -1,
@@ -59,7 +53,6 @@ window.onload = function () {
     lifeCount: 0,
   };
 
-  // Death screen dialogs
   const firstDeathDialogs = [
     "Hello, newcomer! Welcome to the cave.",
     "You're new here, aren't you? Conjurer coded this trap just for you!",
@@ -85,10 +78,8 @@ window.onload = function () {
     "Your ghost walks where you fell."
   ];
 
-  // Current death screen message
   let currentDeathMessage = "";
 
-  // Get canvas and context
   const canvas = document.getElementById("myCanvas");
   if (!canvas) {
     console.error('Canvas element with id="myCanvas" not found');
@@ -100,101 +91,134 @@ window.onload = function () {
     return;
   }
 
-  // Set fixed canvas resolution and scale to window
   function resizeCanvas() {
-    canvas.width = 1280; // Fixed width
-    canvas.height = 720; // Fixed height
+    canvas.width = 1280;
+    canvas.height = 720;
     canvas.style.width = window.innerWidth + 'px';
     canvas.style.height = window.innerHeight + 'px';
-    worldHeight = canvas.height; // Set once, fixed at 720
+    worldHeight = canvas.height;
     console.log(`Canvas set: ${canvas.width}x${canvas.height}, styled to ${canvas.style.width}x${canvas.style.height}`);
   }
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
 
-  // Camera for scrolling
   let cameraX = 0;
 
-  // Load background images for parallax
   const backgroundFar = new Image();
-  backgroundFar.src = "sprites/darklayer.png";
+  backgroundFar.src = "sprites/background/darklayer.png";
   backgroundFar.onerror = () =>
-    console.error("Failed to load sprites/darklayer.png");
+    console.error("Failed to load sprites/background/darklayer.png");
 
   const backgroundMid = new Image();
-  backgroundMid.src = "sprites/opening.png";
+  backgroundMid.src = "sprites/background/opening.png";
   backgroundMid.onerror = () =>
-    console.error("Failed to load sprites/opening.png");
+    console.error("Failed to load sprites/background/opening.png");
 
   const foregroundMid = new Image();
-  foregroundMid.src = "sprites/spikesfloor.png";
+  foregroundMid.src = "sprites/background/spikesfloor.png";
   foregroundMid.onerror = () =>
-    console.error("Failed to load sprites/spikesfloor.png");
+    console.error("Failed to load sprites/background/spikesfloor.png");
 
   const foregroundNear = new Image();
-  foregroundNear.src = "sprites/pillars.png";
+  foregroundNear.src = "sprites/background/pillars.png";
   foregroundNear.onerror = () =>
-    console.error("Failed to load sprites/pillars.png");
+    console.error("Failed to load sprites/background/pillars.png");
 
   const foregroundStationary = new Image();
-  foregroundStationary.src = "sprites/frame.png";
+  foregroundStationary.src = "sprites/background/frame.png";
   foregroundStationary.onerror = () =>
-    console.error("Failed to load sprites/frame.png");
+    console.error("Failed to load sprites/background/frame.png");
 
-  // Load other images
   const coinImg = new Image();
-  coinImg.src = "sprites/coin.png";
-  coinImg.onerror = () => console.error("Failed to load sprites/coin.png");
+  coinImg.src = "sprites/colectables/coinAnim.gif";
+  coinImg.onerror = () => console.error("Failed to load sprites/colectables/coin.png");
 
   const deathImg1 = new Image();
-  deathImg1.src = "sprites/death1.png";
-  deathImg1.onerror = () => console.error("Failed to load sprites/death1.png");
+  deathImg1.src = "sprites/player/death/death1.png";
+  deathImg1.onerror = () => console.error("Failed to load sprites/player/death/death1.png");
   const deathImg2 = new Image();
-  deathImg2.src = "sprites/death2.png";
-  deathImg2.onerror = () => console.error("Failed to load sprites/death2.png");
+  deathImg2.src = "sprites/player/death/death2.png";
+  deathImg2.onerror = () => console.error("Failed to load sprites/player/death/death2.png");
   const deathImg3 = new Image();
-  deathImg3.src = "sprites/death3.png";
-  deathImg3.onerror = () => console.error("Failed to load sprites/death3.png");
+  deathImg3.src = "sprites/player/death/death3.png";
+  deathImg3.onerror = () => console.error("Failed to load sprites/player/death/death3.png");
 
   const playerImgRight = new Image();
-  playerImgRight.src = "sprites/player.png";
+  playerImgRight.src = "sprites/player/player.png";
   playerImgRight.onerror = () =>
-    console.error("Failed to load sprites/player.png");
+    console.error("Failed to load sprites/player/player.png");
   const playerImgLeft = new Image();
-  playerImgLeft.src = "sprites/playerLeft.png";
+  playerImgLeft.src = "sprites/player/playerLeft.png";
+  playerImgLeft.onerror = () =>
+    console.error("Failed to load sprites/player/playerLeft.png");
   const playerImgWalkRight1 = new Image();
-  playerImgWalkRight1.src = "sprites/walk1.png";
+  playerImgWalkRight1.src = "sprites/player/walk/walk1.png";
+  playerImgWalkRight1.onerror = () =>
+    console.error("Failed to load sprites/player/walk/walk1.png");
   const playerImgWalkRight2 = new Image();
-  playerImgWalkRight2.src = "sprites/walk2.png";
+  playerImgWalkRight2.src = "sprites/player/walk/walk2.png";
+  playerImgWalkRight2.onerror = () =>
+    console.error("Failed to load sprites/player/walk/walk2.png");
   const playerImgWalkLeft1 = new Image();
-  playerImgWalkLeft1.src = "sprites/walk1Left.png";
+  playerImgWalkLeft1.src = "sprites/player/walk/walk1Left.png";
+  playerImgWalkLeft1.onerror = () =>
+    console.error("Failed to load sprites/player/walk/walk1Left.png");
   const playerImgWalkLeft2 = new Image();
-  playerImgWalkLeft2.src = "sprites/walk2Left.png";
+  playerImgWalkLeft2.src = "sprites/player/walk/walk2Left.png";
+  playerImgWalkLeft2.onerror = () =>
+    console.error("Failed to load sprites/player/walk/walk2Left.png");
   const playerImgJumpRight = new Image();
-  playerImgJumpRight.src = "sprites/jump.png";
+  playerImgJumpRight.src = "sprites/player/jump/jump.png";
+  playerImgJumpRight.onerror = () =>
+    console.error("Failed to load sprites/player/jump/jump.png");
   const playerImgJumpLeft = new Image();
-  playerImgJumpLeft.src = "sprites/jumpLeft.png";
+  playerImgJumpLeft.src = "sprites/player/jump/jumpLeft.png";
+  playerImgJumpLeft.onerror = () =>
+    console.error("Failed to load sprites/player/jump/jumpLeft.png");
   const playerImgCrouchRight = new Image();
-  playerImgCrouchRight.src = "sprites/crouchRight.png";
+  playerImgCrouchRight.src = "sprites/player/crouch/crouchRight.png";
+  playerImgCrouchRight.onerror = () =>
+    console.error("Failed to load sprites/player/crouch/crouchRight.png");
   const playerImgCrouchLeft = new Image();
-  playerImgCrouchLeft.src = "sprites/crouchLeft.png";
+  playerImgCrouchLeft.src = "sprites/player/crouch/crouchLeft.png";
+  playerImgCrouchLeft.onerror = () =>
+    console.error("Failed to load sprites/player/crouch/crouchLeft.png");
 
   const spikeImgSmall = new Image();
-  spikeImgSmall.src = "sprites/Spikes.png";
+  spikeImgSmall.src = "sprites/spikes/spikes.png";
+  spikeImgSmall.onload = () => console.log("Successfully loaded sprites/spikes/spikes.png");
   spikeImgSmall.onerror = () =>
-    console.error("Failed to load sprites/Spikes.png");
+    console.error("Failed to load sprites/spikes/spikes.png");
   const spikeImgBig = new Image();
-  spikeImgBig.src = "sprites/SpikesLong.png";
+  spikeImgBig.src = "sprites/spikes/spikesLong.png";
   spikeImgBig.onerror = () =>
-    console.error("Failed to load sprites/SpikesLong.png");
+    console.error("Failed to load sprites/spikes/spikesLong.png");
 
-  // Sound effects
+  const platformLeftImg = new Image();
+  platformLeftImg.src = "sprites/platform/platformLeft.png";
+  platformLeftImg.onerror = () =>
+    console.error("Failed to load sprites/platform/platformLeft.png");
+  const platformCenter1Img = new Image();
+  platformCenter1Img.src = "sprites/platform/Center1.png";
+  platformCenter1Img.onerror = () =>
+    console.error("Failed to load sprites/platform/Center1.png");
+  const platformCenter2Img = new Image();
+  platformCenter2Img.src = "sprites/platform/Center2.png";
+  platformCenter2Img.onerror = () =>
+    console.error("Failed to load sprites/platform/Center2.png");
+  const platformRightImg = new Image();
+  platformRightImg.src = "sprites/platform/platformRight.png";
+  platformRightImg.onerror = () =>
+    console.error("Failed to load sprites/platform/platformRight.png");
+
   const soundWalk = new Audio("sounds/playerwalk.wav");
-  soundWalk.volume = 0.4;
+  soundWalk.volume = 0.2;
   soundWalk.playbackRate = 3;
-  const soundJump = new Audio("sounds/jump.wav");
+  const soundJump = new Audio();
+  soundJump.src = "sounds/jump.wav";
+  soundJump.volume = 0.2;
   const soundCrouch = new Audio("sounds/crouch.wav");
-  soundCrouch.volume = 0.5;
+  soundCrouch.volume = 1;
   soundCrouch.playbackRate = 0.8;
   const soundBackground = new Audio("sounds/background.wav");
   soundBackground.loop = true;
@@ -203,28 +227,25 @@ window.onload = function () {
     .play()
     .catch((e) => console.error("Failed to play background sound:", e));
 
-  // Level data
   let platforms = [];
   let spikes = [];
   let coins = [];
-  let spawnPoint = { x: 100, y: 650 };
+  let spawnPoint = { x: 100, y: 656 };
   let selectedLevel = localStorage.getItem("selectedLevel") || "level1";
 
-  // Fallback level
   const fallbackLevel = {
     width: 3000,
     platforms: [
-      { x: 0, y: 20, width: 3000, height: 20 },
-      { x: 0, y: 720, width: 3000, height: 20 },
+      { x: 0, y: 0, width: 3000, height: 64, tilePattern: ["left", "center1", "center2", "right"] },
+      { x: 0, y: 720, width: 3000, height: 64, tilePattern: ["left", "center1", "center2", "right"] },
     ],
     spikes: [],
     coins: [],
-    spawnPoint: { x: 100, y: 650 },
-    finish: { x: 100, y: 60, width: 60, height: 60, color: "yellow" },
+    spawnPoint: { x: 100, y: 656 },
+    finish: { x: 150, y: 64, width: 60, height: 60, color: "yellow" },
     flipSquare: { enabled: false },
   };
 
-  // Load level design from JSON
   function loadLevel() {
     fetch(`levels/${selectedLevel}.json`)
       .then((res) => {
@@ -237,15 +258,19 @@ window.onload = function () {
       .then((level) => {
         levelWidth = level.width || 3000;
         platforms = level.platforms || [];
+        platforms = platforms.map(platform => ({
+          ...platform,
+          tilePattern: Array.isArray(platform.tilePattern) &&
+            platform.tilePattern.every(t => ["left", "center1", "center2", "right"].includes(t))
+            ? platform.tilePattern
+            : ["left", "center1", "center2", "right"]
+        }));
         spikes = level.spikes || [];
         coins = level.coins || [];
-        spawnPoint = level.spawnPoint || {
-          x: 100,
-          y: 650,
-        };
+        spawnPoint = level.spawnPoint || { x: 100, y: 656 };
         finish = level.finish || {
-          x: 100,
-          y: 60,
+          x: 150,
+          y: 64,
           width: 60,
           height: 60,
           color: "yellow",
@@ -254,9 +279,9 @@ window.onload = function () {
         if (flipSquare.enabled) {
           flipSquare = {
             x: flipSquare.x || 2700,
-            y: flipSquare.y || 0,
+            y: flipSquare.y || 656,
             width: flipSquare.width || 60,
-            height: flipSquare.height || 100,
+            height: flipSquare.height || 64,
             color: flipSquare.color || "blue",
             flipped: false,
             enabled: true,
@@ -265,8 +290,8 @@ window.onload = function () {
           flipSquare = { enabled: false };
         }
         player.x = spawnPoint.x;
-        player.y = spawnPoint.y - player.height; // Bottom at spawnPoint.y
-        console.log(`Loaded level: ${selectedLevel}, width: ${levelWidth}, player.y: ${player.y}`);
+        player.y = spawnPoint.y - player.height;
+        console.log(`Loaded level: ${selectedLevel}, width: ${levelWidth}, platforms: ${platforms.length}, player.y: ${player.y}`);
       })
       .catch((error) => {
         console.error("Error loading level:", error);
@@ -281,7 +306,7 @@ window.onload = function () {
         player.y = spawnPoint.y - player.height;
         selectedLevel = "level1";
         localStorage.setItem("selectedLevel", selectedLevel);
-        console.log("Using fallback level, width:", levelWidth, "player.y:", player.y);
+        console.log("Using fallback level, width:", levelWidth, "platforms:", platforms.length, "player.y:", player.y);
       });
   }
   loadLevel();
@@ -296,7 +321,6 @@ window.onload = function () {
   const friction = 0.8;
   const keys = {};
 
-  // Event listeners for key presses
   document.addEventListener("keydown", (e) => {
     if (player.isDying || player.showDeathScreen || player.finished) {
       if (player.showDeathScreen || player.finished) {
@@ -393,7 +417,7 @@ window.onload = function () {
   function respawnPlayer() {
     const wasFinished = player.finished;
     player.x = spawnPoint.x;
-    player.y = spawnPoint.y - player.height; // Bottom at spawnPoint.y
+    player.y = spawnPoint.y - player.height;
     player.velX = 0;
     player.velY = 0;
     player.isDying = false;
@@ -631,44 +655,84 @@ window.onload = function () {
       ctx.save();
       ctx.translate(-cameraX, 0);
 
-      // Draw parallax backgrounds and foregrounds
-      const parallaxFar = 0.2; // Background far
-      const parallaxMidBg = 0.4; // Background mid
-      const parallaxMidFg = 0.6; // Foreground mid
-      const parallaxNear = 0.8; // Foreground near
-      const parallaxStationary = 0.0; // Stationary foreground
+      const parallaxFar = 0.2;
+      const parallaxMidBg = 0.4;
+      const parallaxMidFg = 0.6;
+      const parallaxNear = 0.8;
+      const parallaxStationary = 0.0;
 
-      // Background far
+      // Draw background layers
       if (backgroundFar.complete && backgroundFar.naturalWidth !== 0) {
         const farOffset = (cameraX * parallaxFar) % levelWidth;
         ctx.drawImage(backgroundFar, -farOffset, 0, levelWidth, canvas.height);
         ctx.drawImage(backgroundFar, -farOffset + levelWidth, 0, levelWidth, canvas.height);
       }
-      // Background mid
       if (backgroundMid.complete && backgroundMid.naturalWidth !== 0) {
         const midBgOffset = (cameraX * parallaxMidBg) % levelWidth;
         ctx.drawImage(backgroundMid, -midBgOffset, 0, levelWidth, canvas.height);
         ctx.drawImage(backgroundMid, -midBgOffset + levelWidth, 0, levelWidth, canvas.height);
       }
-      // Foreground mid
       if (foregroundMid.complete && foregroundMid.naturalWidth !== 0) {
         const midFgOffset = (cameraX * parallaxMidFg) % levelWidth;
         ctx.drawImage(foregroundMid, -midFgOffset, 0, levelWidth, canvas.height);
         ctx.drawImage(foregroundMid, -midFgOffset + levelWidth, 0, levelWidth, canvas.height);
       }
-      // Foreground near
       if (foregroundNear.complete && foregroundNear.naturalWidth !== 0) {
         const nearOffset = (cameraX * parallaxNear) % levelWidth;
         ctx.drawImage(foregroundNear, -nearOffset, 0, levelWidth, canvas.height);
         ctx.drawImage(foregroundNear, -nearOffset + levelWidth, 0, levelWidth, canvas.height);
       }
-
-      // Draw game elements (platforms, coins, spikes, etc.)
-      ctx.fillStyle = "green";
-      for (const platform of platforms) {
-        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+      if (foregroundStationary.complete && foregroundStationary.naturalWidth !== 0) {
+        const stationaryOffset = (cameraX * parallaxStationary) % levelWidth;
+        ctx.drawImage(foregroundStationary, -stationaryOffset, 0, levelWidth, canvas.height);
+        ctx.drawImage(foregroundStationary, -stationaryOffset + levelWidth, 0, levelWidth, canvas.height);
       }
 
+      // Draw platforms
+      const tileImages = {
+        left: platformLeftImg,
+        center1: platformCenter1Img,
+        center2: platformCenter2Img,
+        right: platformRightImg
+      };
+
+      for (const platform of platforms) {
+        ctx.save();
+        ctx.translate(platform.x, platform.y);
+        if (flipSquare.enabled && flipSquare.flipped) {
+          ctx.translate(platform.width / 2, platform.height / 2);
+          ctx.rotate(Math.PI);
+          ctx.translate(-platform.width / 2, -platform.height / 2);
+        }
+        if (!platform.tilePattern || platform.width < 100) {
+          ctx.fillStyle = "green";
+          ctx.fillRect(0, 0, platform.width, platform.height);
+        } else {
+          const tileWidth = 100;
+          const tileHeight = platform.height;
+          let currentX = 0;
+          for (const tileType of platform.tilePattern) {
+            const img = tileImages[tileType];
+            if (img && img.complete && img.naturalWidth !== 0) {
+              ctx.drawImage(img, currentX, 0, tileWidth, tileHeight);
+            } else {
+              ctx.fillStyle = "green";
+              ctx.fillRect(currentX, 0, tileWidth, tileHeight);
+            }
+            currentX += tileWidth;
+            if (currentX >= platform.width) break;
+          }
+          while (currentX < platform.width) {
+            ctx.fillStyle = "green";
+            const remainingWidth = Math.min(tileWidth, platform.width - currentX);
+            ctx.fillRect(currentX, 0, remainingWidth, tileHeight);
+            currentX += tileWidth;
+          }
+        }
+        ctx.restore();
+      }
+
+      // Draw coins
       for (const coin of coins) {
         if (coinImg.complete && coinImg.naturalWidth !== 0) {
           ctx.drawImage(coinImg, coin.x, coin.y, coin.width, coin.height);
@@ -678,6 +742,7 @@ window.onload = function () {
         }
       }
 
+      // Draw spikes
       for (const spike of spikes) {
         let img = spike.type === "big" ? spikeImgBig : spikeImgSmall;
         const isUp = spike.direction === "up";
@@ -718,6 +783,7 @@ window.onload = function () {
         }
       }
 
+      // Draw flip square and finish
       if (flipSquare.enabled) {
         ctx.fillStyle = flipSquare.color;
         ctx.fillRect(
@@ -736,13 +802,7 @@ window.onload = function () {
         finish.height
       );
 
-      // Draw stationary foreground after game elements
-      if (foregroundStationary.complete && foregroundStationary.naturalWidth !== 0) {
-        const stationaryOffset = (cameraX * parallaxStationary) % levelWidth;
-        ctx.drawImage(foregroundStationary, -stationaryOffset, 0, levelWidth, canvas.height);
-        ctx.drawImage(foregroundStationary, -stationaryOffset + levelWidth, 0, levelWidth, canvas.height);
-      }
-
+      // Draw ghost
       if (ghost.active && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0 && (player.showDeathScreen || ghost.lifeCount < 5)) {
         const ghostState = ghost.histories[ghost.currentHistoryIndex][ghost.currentFrame % ghost.histories[ghost.currentHistoryIndex].length];
         let imgToDraw;
@@ -811,6 +871,7 @@ window.onload = function () {
         }
       }
 
+      // Draw player
       let spriteFacing = (flipSquare.enabled && flipSquare.flipped)
         ? facing === "left"
           ? "right"
@@ -873,6 +934,7 @@ window.onload = function () {
 
       ctx.restore();
 
+      // Draw UI
       if (!player.showDeathScreen && !player.finished) {
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
