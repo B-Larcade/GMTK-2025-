@@ -1,13 +1,13 @@
 {
   "width": 2500,
   "platforms": [
-    {"x": 0, "y": 0, "width": 2500, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "default"},
+    {"x": 0, "y": -64, "width": 2500, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "default"},
     {"x": 0, "y": 720, "width": 2500, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "default"},
     {"x": 400, "y": 600, "width": 200, "height": 64, "tilePattern": ["left", "center1", "right"], "enabled": true, "color": "default"},
     {"x": 700, "y": 450, "width": 200, "height": 64, "tilePattern": ["left", "center1", "right"], "enabled": true, "color": "default"},
     {"x": 1000, "y": 400, "width": 200, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": false, "color": "red"},
     {"x": 1300, "y": 500, "width": 200, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": false, "color": "red"},
-    {"x": 1600, "y": 550, "width": 200, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "blue"},
+    {"x": 1600, "y": 600, "width": 200, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "blue"},
     {"x": 1900, "y": 400, "width": 200, "height": 64, "tilePattern": ["left", "center1", "center2", "right"], "enabled": true, "color": "blue"}
   ],
   "spikes": [
