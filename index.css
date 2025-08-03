@@ -5,21 +5,6 @@ body {
 }
 #menu,
 #levelSelect,
-#options {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: sans-serif;
-    z-index: 2;
-}
 #menu button,
 #levelSelect button,
 #tutorial button,
@@ -65,4 +50,5 @@ body {
     width: 10%;
     height: 10%;
     margin: 5px;
+
 }
