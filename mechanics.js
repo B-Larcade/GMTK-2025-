@@ -90,6 +90,10 @@ window.onload = function () {
   let frameCountForFPS = 0;
   let fps = 0;
   let accumulatedTime = 0;
+  let paused = false;
+  let isMuted = false;
+  let completedLevels = JSON.parse(localStorage.getItem("completedLevels")) || [];
+  let highestLevel = localStorage.getItem("highestLevel") || "level1";
 
   const canvas = document.getElementById("myCanvas");
   if (!canvas) {
@@ -172,7 +176,9 @@ window.onload = function () {
   const soundBackground = loadAsset("sounds/background.wav");
   soundBackground.loop = true;
   soundBackground.volume = 0.5;
-  soundBackground.play().catch((e) => console.error("Failed to play background sound:", e));
+  if (!isMuted) {
+    soundBackground.play().catch((e) => console.error("Failed to play background sound:", e));
+  }
 
   let platforms = [];
   let spikes = [];
@@ -249,6 +255,13 @@ window.onload = function () {
         }
         player.x = spawnPoint.x;
         player.y = spawnPoint.y - player.height;
+        const currentLevelNum = parseInt(selectedLevel.replace("level", "")) || 1;
+        const highestLevelNum = parseInt(highestLevel.replace("level", "")) || 1;
+        if (currentLevelNum > highestLevelNum) {
+          highestLevel = selectedLevel;
+          localStorage.setItem("highestLevel", highestLevel);
+          console.log(`Updated highestLevel to: ${highestLevel}`);
+        }
         console.log(`Loaded level: ${selectedLevel}, width: ${levelWidth}, platforms: ${platforms.length}, levers: ${levers.length}, player.y: ${player.y}`);
       })
       .catch((error) => {
@@ -265,10 +278,11 @@ window.onload = function () {
         player.y = spawnPoint.y - player.height;
         selectedLevel = "level1";
         localStorage.setItem("selectedLevel", selectedLevel);
+        highestLevel = "level1";
+        localStorage.setItem("highestLevel", highestLevel);
         console.log("Using fallback level, width:", levelWidth, "platforms:", platforms.length, "player.y:", player.y);
       });
   }
-  loadLevel();
 
   let facing = "right";
   let jumping = false;
@@ -280,8 +294,81 @@ window.onload = function () {
   const friction = 0.8;
   const keys = {};
 
+  const pauseButton = {
+    x: 1150,
+    y: 10,
+    width: 100,
+    height: 40,
+    text: () => paused ? "Resume" : "Pause",
+  };
+
+  const pauseMenu = {
+    buttons: [
+      {
+        text: () => isMuted ? "Unmute" : "Mute",
+        x: canvas.width / 2 - 110,
+        y: canvas.height / 2 - 60,
+        width: 220,
+        height: 60,
+        clickTimer: 0,
+        action: () => {
+          isMuted = !isMuted;
+          soundBackground.muted = isMuted;
+          soundWalk.muted = isMuted;
+          soundJump.muted = isMuted;
+          soundCrouch.muted = isMuted;
+          if (isMuted) {
+            soundBackground.pause();
+            soundWalk.pause();
+            soundJump.pause();
+            soundCrouch.pause();
+          } else {
+            soundBackground.play().catch((e) => console.error("Failed to resume background sound:", e));
+          }
+          console.log("Sound muted:", isMuted);
+        }
+      },
+      {
+        text: "Restart",
+        x: canvas.width / 2 - 110,
+        y: canvas.height / 2 + 10,
+        width: 220,
+        height: 60,
+        clickTimer: 0,
+        action: () => {
+          respawnPlayer();
+          paused = false;
+          console.log("Restarted level:", selectedLevel);
+        }
+      },
+      {
+        text: "Go to Main Menu",
+        x: canvas.width / 2 - 110,
+        y: canvas.height / 2 + 80,
+        width: 220,
+        height: 60,
+        clickTimer: 0,
+        action: () => {
+          paused = false;
+          console.log("Navigating to main menu (index.html)");
+          window.location.href = "index.html";
+        }
+      }
+    ]
+  };
+
+  let mouseX = 0;
+  let mouseY = 0;
+
   document.addEventListener("keydown", (e) => {
-    if (player.isDying || player.showDeathScreen || player.finished) {
+    if (e.key === "Escape") {
+      if (!player.isDying && !player.showDeathScreen && !player.finished) {
+        paused = !paused;
+        console.log("Pause toggled:", paused);
+      }
+      return;
+    }
+    if (paused || player.isDying || player.showDeathScreen || player.finished) {
       if (player.showDeathScreen || player.finished) {
         respawnPlayer();
       }
@@ -295,7 +382,7 @@ window.onload = function () {
       e.preventDefault();
       if (player.grounded && !crouching) {
         crouching = true;
-        if (soundCrouch) {
+        if (!isMuted && soundCrouch) {
           soundCrouch.currentTime = 0;
           soundCrouch.play().catch((e) => console.error("Failed to play crouch sound:", e));
         }
@@ -304,7 +391,7 @@ window.onload = function () {
   });
 
   document.addEventListener("keyup", (e) => {
-    if (player.isDying || player.showDeathScreen || player.finished) return;
+    if (paused || player.isDying || player.showDeathScreen || player.finished) return;
     const key = e.key.toLowerCase();
     keys[key] = false;
     if ((e.code === "Space" || key === "w") && player.grounded) {
@@ -314,10 +401,43 @@ window.onload = function () {
       player.grounded = false;
       jumping = true;
       console.log("Jump triggered, velY:", player.velY, "flipped:", flipSquare.enabled ? flipSquare.flipped : false);
-      if (soundJump) {
+      if (!isMuted && soundJump) {
         soundJump.currentTime = 0;
         soundJump.play().catch((e) => console.error("Failed to play jump sound:", e));
       }
+    }
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+  });
+
+  document.addEventListener("click", () => {
+    if (!player.isDying && !player.showDeathScreen && !player.finished) {
+      if (
+        mouseX >= pauseButton.x &&
+        mouseX <= pauseButton.x + pauseButton.width &&
+        mouseY >= pauseButton.y &&
+        mouseY <= pauseButton.y + pauseButton.height
+      ) {
+        paused = !paused;
+        console.log("Pause toggled via button:", paused);
+      }
+    }
+    if (paused) {
+      pauseMenu.buttons.forEach(button => {
+        if (
+          mouseX >= button.x &&
+          mouseX <= button.x + button.width &&
+          mouseY >= button.y &&
+          mouseY <= button.y + button.height
+        ) {
+          button.clickTimer = 6; // 100ms at 60 FPS
+          button.action();
+        }
+      });
     }
   });
 
@@ -399,9 +519,20 @@ window.onload = function () {
       keys[key] = false;
     }
     if (wasFinished) {
+      if (!completedLevels.includes(selectedLevel)) {
+        completedLevels.push(selectedLevel);
+        localStorage.setItem("completedLevels", JSON.stringify(completedLevels));
+        console.log(`Completed level: ${selectedLevel}, completedLevels:`, completedLevels);
+      }
       const currentLevelNum = parseInt(selectedLevel.replace("level", "")) || 1;
       selectedLevel = `level${currentLevelNum + 1}`;
       localStorage.setItem("selectedLevel", selectedLevel);
+      const highestLevelNum = parseInt(highestLevel.replace("level", "")) || 1;
+      if (currentLevelNum + 1 > highestLevelNum) {
+        highestLevel = selectedLevel;
+        localStorage.setItem("highestLevel", highestLevel);
+        console.log(`Updated highestLevel to: ${highestLevel}`);
+      }
       loadLevel();
       console.log(`Advancing to next level: ${selectedLevel}`);
     }
@@ -444,7 +575,7 @@ window.onload = function () {
     let walking = false;
     if ((keys["a"] || keys["d"]) && player.grounded) {
       walking = true;
-      if (soundWalk && soundWalk.paused) {
+      if (!isMuted && soundWalk && soundWalk.paused) {
         soundWalk.currentTime = 0;
         soundWalk.play().catch((e) => console.error("Failed to play walk sound:", e));
       }
@@ -634,7 +765,6 @@ window.onload = function () {
       const parallaxNear = 0.8;
       const parallaxStationary = 0.0;
 
-      // Draw backgrounds every frame
       if (backgroundFar.complete && backgroundFar.naturalWidth !== 0) {
         const farOffset = (cameraX * parallaxFar) % levelWidth;
         ctx.drawImage(backgroundFar, -farOffset, 0, levelWidth, canvas.height);
@@ -671,7 +801,6 @@ window.onload = function () {
         console.warn("Failed to load frame.png");
       }
 
-      // Draw platforms
       const tileImages = {
         default: {
           left: platformLeftImg,
@@ -754,7 +883,6 @@ window.onload = function () {
         ctx.restore();
       }
 
-      // Draw coins
       for (const coin of coins) {
         if (coin.x + coin.width < cameraLeft || coin.x > cameraRight) continue;
         if (coinImg.complete && coinImg.naturalWidth !== 0) {
@@ -766,7 +894,6 @@ window.onload = function () {
         }
       }
 
-      // Draw spikes
       for (const spike of spikes) {
         if (spike.x + spike.width < cameraLeft || spike.x > cameraRight) continue;
         let img = spike.type === "big" ? spikeImgBig : spikeImgSmall;
@@ -799,7 +926,6 @@ window.onload = function () {
         }
       }
 
-      // Draw levers
       for (const lever of levers) {
         if (lever.x + lever.width < cameraLeft || lever.x > cameraRight) continue;
         if (leverImg && leverImg.complete && leverImg.naturalWidth !== 0) {
@@ -811,7 +937,6 @@ window.onload = function () {
         }
       }
 
-      // Draw flip square
       if (flipSquare.enabled && flipSquare.x + flipSquare.width >= cameraLeft && flipSquare.x <= cameraRight) {
         if (flipBoxImg.complete && flipBoxImg.naturalWidth !== 0) {
           ctx.drawImage(flipBoxImg, flipSquare.x, flipSquare.y, flipSquare.width, flipSquare.height);
@@ -822,7 +947,6 @@ window.onload = function () {
         }
       }
 
-      // Draw finish
       if (finish.x + finish.width >= cameraLeft && finish.x <= cameraRight) {
         if (finishImg.complete && finishImg.naturalWidth !== 0) {
           ctx.drawImage(finishImg, finish.x, finish.y, finish.width, finish.height);
@@ -833,55 +957,51 @@ window.onload = function () {
         }
       }
 
-      // Draw ghost
       if (ghost.active && ghost.currentHistoryIndex >= 0 && ghost.histories[ghost.currentHistoryIndex].length > 0 && (player.showDeathScreen || ghost.lifeCount < 5)) {
         const ghostState = ghost.histories[ghost.currentHistoryIndex][ghost.currentFrame % ghost.histories[ghost.currentHistoryIndex].length];
-        if (ghostState.x + player.width < cameraLeft || ghostState.x > cameraRight) {
-          ctx.restore();
-          return; // Skip drawing ghost if out of view
-        }
-        let imgToDraw;
-        let spriteFacing = (flipSquare.enabled && ghostState.flipped)
-          ? ghostState.facing === "left" ? "right" : "left"
-          : ghostState.facing;
+        if (ghostState.x + player.width >= cameraLeft && ghostState.x <= cameraRight) {
+          let imgToDraw;
+          let spriteFacing = (flipSquare.enabled && ghostState.flipped)
+            ? ghostState.facing === "left" ? "right" : "left"
+            : ghostState.facing;
 
-        if (ghostState.jumping) {
-          imgToDraw = spriteFacing === "left" ? playerImgJumpLeft : playerImgJumpRight;
-        } else if (ghostState.crouching) {
-          imgToDraw = spriteFacing === "left" ? playerImgCrouchLeft : playerImgCrouchRight;
-        } else if (ghostState.walkFrame !== 0) {
-          if (spriteFacing === "left") {
-            imgToDraw = ghostState.walkFrame === 0 ? playerImgWalkLeft1 : playerImgWalkLeft2;
+          if (ghostState.jumping) {
+            imgToDraw = spriteFacing === "left" ? playerImgJumpLeft : playerImgJumpRight;
+          } else if (ghostState.crouching) {
+            imgToDraw = spriteFacing === "left" ? playerImgCrouchLeft : playerImgCrouchRight;
+          } else if (ghostState.walkFrame !== 0) {
+            if (spriteFacing === "left") {
+              imgToDraw = ghostState.walkFrame === 0 ? playerImgWalkLeft1 : playerImgWalkLeft2;
+            } else {
+              imgToDraw = ghostState.walkFrame === 0 ? playerImgWalkRight1 : playerImgWalkRight2;
+            }
+          } else if (spriteFacing === "left") {
+            imgToDraw = playerImgLeft;
           } else {
-            imgToDraw = ghostState.walkFrame === 0 ? playerImgWalkRight1 : playerImgWalkRight2;
+            imgToDraw = playerImgRight;
           }
-        } else if (spriteFacing === "left") {
-          imgToDraw = playerImgLeft;
-        } else {
-          imgToDraw = playerImgRight;
-        }
 
-        if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
-          ctx.save();
-          ctx.globalAlpha = ghost.opacity;
-          if (flipSquare.enabled && ghostState.flipped) {
-            ctx.translate(ghostState.x + player.width / 2, ghostState.y + player.height / 2);
-            ctx.rotate(Math.PI);
-            ctx.drawImage(imgToDraw, -player.width / 2, -player.height / 2, player.width, player.height);
+          if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
+            ctx.save();
+            ctx.globalAlpha = ghost.opacity;
+            if (flipSquare.enabled && ghostState.flipped) {
+              ctx.translate(ghostState.x + player.width / 2, ghostState.y + player.height / 2);
+              ctx.rotate(Math.PI);
+              ctx.drawImage(imgToDraw, -player.width / 2, -player.height / 2, player.width, player.height);
+            } else {
+              ctx.drawImage(imgToDraw, ghostState.x, ghostState.y, player.width, player.height);
+            }
+            ctx.restore();
           } else {
-            ctx.drawImage(imgToDraw, ghostState.x, ghostState.y, player.width, player.height);
+            ctx.save();
+            ctx.globalAlpha = ghost.opacity;
+            ctx.fillStyle = "white";
+            ctx.fillRect(ghostState.x, ghostState.y, player.width, player.height);
+            ctx.restore();
           }
-          ctx.restore();
-        } else {
-          ctx.save();
-          ctx.globalAlpha = ghost.opacity;
-          ctx.fillStyle = "white";
-          ctx.fillRect(ghostState.x, ghostState.y, player.width, player.height);
-          ctx.restore();
         }
       }
 
-      // Draw player
       let spriteFacing = (flipSquare.enabled && flipSquare.flipped)
         ? facing === "left" ? "right" : "left"
         : facing;
@@ -922,7 +1042,6 @@ window.onload = function () {
         console.warn("Failed to load player image, using fallback red rectangle");
       }
 
-      // Draw winning animation
       if (player.finished && winAnimImg.complete && winAnimImg.naturalWidth !== 0) {
         ctx.save();
         ctx.drawImage(winAnimImg, player.x, player.y, player.width, player.height);
@@ -931,7 +1050,19 @@ window.onload = function () {
 
       ctx.restore();
 
-      // Draw UI
+      if (!player.showDeathScreen && !player.finished && !paused) {
+        ctx.fillStyle = (mouseX >= pauseButton.x && mouseX <= pauseButton.x + pauseButton.width &&
+                         mouseY >= pauseButton.y && mouseY <= pauseButton.y + pauseButton.height)
+          ? "lightgray"
+          : "gray";
+        ctx.fillRect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(pauseButton.text(), pauseButton.x + pauseButton.width / 2, pauseButton.y + pauseButton.height / 2 + 7);
+        ctx.textAlign = "left";
+      }
+
       if (!player.showDeathScreen && !player.finished) {
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
@@ -967,6 +1098,50 @@ window.onload = function () {
         ctx.textAlign = "left";
       }
 
+      if (paused) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.filter = "none";
+        ctx.fillStyle = "white";
+        ctx.font = "40px Arial bold";
+        ctx.textAlign = "center";
+        ctx.fillText("Paused", canvas.width / 2, canvas.height / 2 - 150);
+        ctx.fillStyle = (mouseX >= pauseButton.x && mouseX <= pauseButton.x + pauseButton.width &&
+                         mouseY >= pauseButton.y && mouseY <= pauseButton.y + pauseButton.height)
+          ? "lightgray"
+          : "gray";
+        ctx.fillRect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText(pauseButton.text(), pauseButton.x + pauseButton.width / 2, pauseButton.y + pauseButton.height / 2 + 7);
+        pauseMenu.buttons.forEach(button => {
+          const isHover = mouseX >= button.x && mouseX <= button.x + button.width &&
+                          mouseY >= button.y && mouseY <= button.y + button.height;
+          const scale = isHover ? 1.05 : 1;
+          const width = button.width * scale;
+          const height = button.height * scale;
+          const x = button.x - (width - button.width) / 2;
+          const y = button.y - (height - button.height) / 2;
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 5;
+          ctx.shadowOffsetY = 5;
+          ctx.beginPath();
+          ctx.roundRect(x, y, width, height, 10);
+          ctx.fillStyle = button.clickTimer > 0 ? "#999" : isHover ? "#777" : "#555";
+          ctx.fill();
+          ctx.restore();
+          ctx.fillStyle = "white";
+          ctx.font = "24px Arial bold";
+          ctx.fillText(button.text(), button.x + button.width / 2, button.y + button.height / 2 + 8);
+          if (button.clickTimer > 0) {
+            button.clickTimer--;
+          }
+        });
+        ctx.textAlign = "left";
+      }
+
       applyCornerBlur();
       ctx.filter = "none";
     } catch (e) {
@@ -975,6 +1150,7 @@ window.onload = function () {
   }
 
   function update() {
+    if (paused) return;
     frameCount++;
     frameCountForFPS++;
     const currentTime = performance.now();
@@ -1009,6 +1185,7 @@ window.onload = function () {
     }
   }
 
+  loadLevel();
   console.log("Starting game loop");
   requestAnimationFrame((timestamp) => {
     lastTime = timestamp;
