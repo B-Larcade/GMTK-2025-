@@ -2,54 +2,8 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>I Have No Clue what to call this game, GMTK</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      #menu,
-      #levelSelect,
-      #tutorial,
-      #options {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-family: sans-serif;
-        z-index: 2;
-      }
-      #menu button,
-      #levelSelect button,
-      #tutorial button,
-      #options button {
-        margin: 10px;
-        padding: 15px 40px;
-        font-size: 1.2em;
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        background: #444;
-        color: #fff;
-        transition: background 0.2s;
-      }
-      #menu button:hover,
-      #levelSelect button:hover,
-      #tutorial button:hover,
-      #options button:hover {
-        background: #888;
-      }
-      #c {
-        z-index: 1;
-      }
-    </style>
+    <title>Crock loop</title>
+    <link rel="stylesheet" href="index.css">
   </head>
   <body>
     <canvas
@@ -59,38 +13,16 @@
       style="position: absolute; top: 0; left: 0; width: 100%; height: 100%"
     ></canvas>
     <div id="menu">
-      <h1>I Have No clue What to Call this, GMTK</h1>
-      <button onclick="showLevelSelect()">Level Select</button>
-      <button onclick="showTutorial('tutorial')">Tutorial</button>
-      <button onclick="showOptions()">Options</button>
+      <img id="logoImg" src="sprites/menu/logo.png">
+      <img id="selectBtn" src="sprites/menu/levelSelect.png" onclick="showLevelSelect()">
     </div>
-    <div
-      id="levelSelect"
-      style="display: none"
-    >
-      <h2>Level Select</h2>
-      <button onclick="startGame('level1')">Level 1</button>
-      <button onclick="startGame('level2')">Level 2</button>
-      <button onclick="backToMenu()">Back</button>
+    <div id="levelSelect" style="display: none">
+      <img class="levelSelect" src="sprites/menu/playLevel1.png" onclick="startGame('level1')">
+      <img class="levelSelect" src="sprites/menu/playLevel2.png" onclick="startGame('level2')">
+      <img class="levelSelect" src="sprites/menu/playLevel3.png" onclick="startGame('level3')">
+      <img class="levelSelect" src="sprites/menu/playLevel4.png" onclick="startGame('level4')">
+      <img id="backBtn" src="sprites/menu/backTomenuBtn.png" onclick="backToMenu()"></img>
     </div>
-    <div
-      id="tutorial"
-      style="display: none"
-    >
-      <h2>Tutorial</h2>
-      <p>
-        Use A/D or arrow keys to move, W or Space to jump, hold jump to crouch,
-        release to jump.
-      </p>
-      <button onclick="backToMenu()">Back</button>
-    </div>
-    <div
-      id="options"
-      style="display: none"
-    >
-      <h2>Options</h2>
-      <p>Volume, Controls, etc. (placeholder)</p>
-      <button onclick="backToMenu()">Back</button>
     </div>
     <script>
       function showLevelSelect() {
@@ -100,10 +32,7 @@
       function showTutorial() {
         window.location.href = "canvas.html"; // Redirect to canvas.html for tutorial
       }
-      function showOptions() {
-        document.getElementById("menu").style.display = "none";
-        document.getElementById("options").style.display = "flex";
-      }
+
       function backToMenu() {
         document.getElementById("menu").style.display = "flex";
         document.getElementById("levelSelect").style.display = "none";
@@ -132,3 +61,4 @@
     </script>
   </body>
 </html>
+
